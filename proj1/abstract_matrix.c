@@ -8,9 +8,36 @@ static const char *getKlass(const Matrix *this, int *err)
   return "abstractMatrix";
 }
 
-static void free(Matrix *this, int *err)
+static void freeAbstractMatrix(Matrix *this, int *err)
 {
   free(this);
+}
+
+static void transpose(const Matrix *this, Matrix *result, int *err)
+{
+  // Check dimensions: MxN -> NxM
+  const int this_m = this->fns->getNRows(this, err);
+  if (*err == EINVAL) return;
+  const int this_n = this->fns->getNCols(this, err);
+  if (*err == EINVAL) return;
+  const int result_n = this->fns->getNRows(this, err);
+  if (*err == EINVAL) return;
+  const int result_m = this->fns->getNCols(this, err);
+  if (*err == EINVAL) return;
+  if (!(this_m == result_m && this_n == result_n)) {
+    *err = EDOM;
+    return;
+  }
+
+  // Transpose: Res[r][c] = This[c][r]
+  for (int r = 0; r < result_n; r++) {
+    for (int c = 0; c < result_m; c++) {
+      MatrixBaseType x = this->fns->getElement(this, c, r, err);
+      if (*err == EDOM || *err == EINVAL) return;
+      result->fns->setElement(result, r, c, x, err);
+      if (*err == EDOM || *err == EINVAL) return;
+    }
+  }
 }
 
 static void mul(const Matrix *this, const Matrix *multiplier,
@@ -20,7 +47,7 @@ static void mul(const Matrix *this, const Matrix *multiplier,
   // MxN * NxP = MxP
   const int this_m = this->fns->getNRows(this, err);
   if (*err == EINVAL) return;
-  const int this_n = this->fns-getNCols(this, err);
+  const int this_n = this->fns->getNCols(this, err);
   if (*err == EINVAL) return;
   const int mul_n = multiplier->fns->getNRows(multiplier, err);
   if (*err == EINVAL) return;
@@ -55,7 +82,9 @@ static void mul(const Matrix *this, const Matrix *multiplier,
 
 static MatrixFns abstractMatrixFns = {
   .getKlass = getKlass,
-  .free = free,
+  .free = freeAbstractMatrix,
+  .transpose = transpose,
+  .mul = mul,
 };
 
 /** Return implementation of functions for an abstract matrix; these are
@@ -65,5 +94,5 @@ static MatrixFns abstractMatrixFns = {
 const MatrixFns *
 getAbstractMatrixFns(void)
 {
-  return abstractMatrixFns;
+  return &abstractMatrixFns;
 }
