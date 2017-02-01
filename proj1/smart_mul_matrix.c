@@ -4,7 +4,74 @@
 #include <errno.h>
 #include <stdbool.h>
 
+typedef struct {
+  DenseMatrix;
+} SmartMulMatrixImpl;
+
+static const char *getKlass(const Matrix *this, int *err)
+{
+  return "smartMulMatrix";
+}
+
+static void mul(const Matrix *this, const Matrix *multiplier,
+		Matrix *product, int *err)
+{
+  // Check if the dimensions are correct:
+  // MxN * NxP = MxP
+  const int this_m = this->fns->getNRows(this, err);
+  if (*err == EINVAL) return;
+  const int this_n = this->fns->getNCols(this, err);
+  if (*err == EINVAL) return;
+  const int mul_n = multiplier->fns->getNRows(multiplier, err);
+  if (*err == EINVAL) return;
+  const int mul_p = multiplier->fns->getNCols(multiplier, err);
+  if (*err == EINVAL) return;
+  const int pr_m = product->fns->getNRows(product, err);
+  if (*err == EINVAL) return;
+  const int pr_p = product->fns->getNCols(product, err);
+  if (*err == EINVAL) return;
+  if (!(this_m == pr_m && this_n == mul_n && mul_p == pr_p)) {
+    *err = EDOM;
+    return;
+  }
+
+  // Transpose multiplier, so columns are more likely to end up in the cache
+  // NxP -> PxN
+  Matrix *tr_multiplier = (Matrix *)newSmartMulMatrix(mul_p, mul_n, err);
+  if (*err == EINVAL || *err == ENOMEM) return;
+  multiplier->fns->transpose(multiplier, tr_multiplier, err);
+  if (*err == EINVAL || *err == EDOM) {
+    tr_multiplier->fns->free(tr_multiplier, err);
+    return;
+  }
+
+  // Do the multiplication
+  for (int pr_r = 0; pr_r < pr_m; pr_r++) {
+    for (int pr_c = 0; pr_c < pr_p; pr_c++) {
+      // Pr[r][c] <- Sum_i This[r][i]*tr_That[c][i]
+      MatrixBaseType res = 0;
+      for (int i = 0; i < this_n; i++) {
+	MatrixBaseType a = this->fns->getElement(this, pr_r, i, err);
+	if (*err == EINVAL || *err == EDOM) return;
+	MatrixBaseType b = tr_multiplier->fns->getElement(this, pr_c, i, err);
+	if (*err == EINVAL || *err == EDOM) return;
+	res += a*b;
+      }
+      product->fns->setElement(product, pr_r, pr_c, res, err);
+      if (*err == EINVAL || *err == EDOM) return;
+    }
+  }
+
+  // Clean up
+  tr_multiplier->fns->free(tr_multiplier, err);
+}
+
 //TODO: Add types, data and functions as required.
+static _Bool isInit = false;
+static SmartMulMatrixFns smartMulMatrixFns = {
+  .getKlass = getKlass,
+  .mul = mul,
+};
 
 /** Return a newly allocated matrix with all entries in consecutive
  *  memory locations (row-major layout).  All entries in the newly
@@ -18,7 +85,24 @@
  */
 SmartMulMatrix *newSmartMulMatrix(int nRows, int nCols, int *err)
 {
-  return NULL;
+  SmartMulMatrixImpl *matrix = (SmartMulMatrixImpl *)newDenseMatrix(nRows, nCols, err);
+  if (*err == EINVAL || *err == EDOM) return NULL;
+  
+  matrix->fns = (MatrixFns *)getSmartMulMatrixFns();
+  return (SmartMulMatrix *)matrix;
+}
+
+static void patchSmartMulMatrixFns(void)
+{
+  if (!isInit) {
+    const DenseMatrixFns *fns = getDenseMatrixFns();
+    smartMulMatrixFns.free = fns->free;
+    smartMulMatrixFns.getNRows = fns->getNRows;
+    smartMulMatrixFns.getNCols = fns->getNCols;
+    smartMulMatrixFns.getElement = fns->getElement;
+    smartMulMatrixFns.setElement = fns->setElement;
+    isInit = true;
+  }
 }
 
 /** Return implementation of functions for a smart multiplication
@@ -28,5 +112,6 @@ SmartMulMatrix *newSmartMulMatrix(int nRows, int nCols, int *err)
 const SmartMulMatrixFns *
 getSmartMulMatrixFns(void)
 {
-  return NULL;
+  patchSmartMulMatrixFns();
+  return &smartMulMatrixFns;
 }

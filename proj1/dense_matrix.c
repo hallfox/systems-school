@@ -133,7 +133,7 @@ newDenseMatrix(int nRows, int nCols, int *err)
     matrix->mat[i] = col;
   }
 
-  matrix->fns = getDenseMatrixFns();
+  matrix->fns = (MatrixFns *)getDenseMatrixFns();
   
   return (DenseMatrix *)matrix;
 }
