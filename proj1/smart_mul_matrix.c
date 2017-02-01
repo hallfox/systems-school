@@ -53,7 +53,7 @@ static void mul(const Matrix *this, const Matrix *multiplier,
       for (int i = 0; i < this_n; i++) {
 	MatrixBaseType a = this->fns->getElement(this, pr_r, i, err);
 	if (*err == EINVAL || *err == EDOM) return;
-	MatrixBaseType b = tr_multiplier->fns->getElement(this, pr_c, i, err);
+	MatrixBaseType b = tr_multiplier->fns->getElement(tr_multiplier, pr_c, i, err);
 	if (*err == EINVAL || *err == EDOM) return;
 	res += a*b;
       }
@@ -101,6 +101,7 @@ static void patchSmartMulMatrixFns(void)
     smartMulMatrixFns.getNCols = fns->getNCols;
     smartMulMatrixFns.getElement = fns->getElement;
     smartMulMatrixFns.setElement = fns->setElement;
+    smartMulMatrixFns.transpose = fns->transpose;
     isInit = true;
   }
 }

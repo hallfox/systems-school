@@ -20,9 +20,9 @@ static void transpose(const Matrix *this, Matrix *result, int *err)
   if (*err == EINVAL) return;
   const int this_n = this->fns->getNCols(this, err);
   if (*err == EINVAL) return;
-  const int result_n = this->fns->getNRows(this, err);
+  const int result_n = result->fns->getNRows(result, err);
   if (*err == EINVAL) return;
-  const int result_m = this->fns->getNCols(this, err);
+  const int result_m = result->fns->getNCols(result, err);
   if (*err == EINVAL) return;
   if (!(this_m == result_m && this_n == result_n)) {
     *err = EDOM;
@@ -70,7 +70,7 @@ static void mul(const Matrix *this, const Matrix *multiplier,
       for (int i = 0; i < this_n; i++) {
 	MatrixBaseType a = this->fns->getElement(this, pr_r, i, err);
 	if (*err == EINVAL || *err == EDOM) return;
-	MatrixBaseType b = multiplier->fns->getElement(this, i, pr_c, err);
+	MatrixBaseType b = multiplier->fns->getElement(multiplier, i, pr_c, err);
 	if (*err == EINVAL || *err == EDOM) return;
 	res += a*b;
       }

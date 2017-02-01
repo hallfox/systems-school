@@ -268,7 +268,7 @@ doTransposeTestMatrix(FILE *out, _Bool doOutput,
   matrix->fns->transpose(matrix, transpose, &err);
   if (err) {
     error("doTransposeTestMatrix(): cannot transpose %s: %s\n",
-          desc, strerror(errno));
+          desc, strerror(err));
     return;
   }
   testTranspose(matrix, desc, transpose, nRows, nCols);

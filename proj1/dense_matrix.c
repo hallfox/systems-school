@@ -9,7 +9,7 @@ typedef struct {
   DenseMatrix;
   int nRows;
   int nCols;
-  MatrixBaseType *mat[];
+  MatrixBaseType mat[];
 } DenseMatrixImpl;
 
 static const char *getKlass(const Matrix *this, int *err)
@@ -20,9 +20,6 @@ static const char *getKlass(const Matrix *this, int *err)
 static void freeDenseMatrix(Matrix *this, int *err)
 {
   DenseMatrixImpl *matrix = (DenseMatrixImpl *)this;
-  for (int i = 0; i < matrix->nRows; i++) {
-    free(matrix->mat[i]);
-  }
   free(matrix);
 }
 
@@ -52,7 +49,7 @@ static MatrixBaseType getElement(const Matrix *this,
     return 0;
   }
 
-  return matrix->mat[rowIndex][colIndex];
+  return matrix->mat[rowIndex*nCols+colIndex];
 }
 
 static void setElement(Matrix *this, int rowIndex, int colIndex,
@@ -69,7 +66,7 @@ static void setElement(Matrix *this, int rowIndex, int colIndex,
     return;
   }
 
-  matrix->mat[rowIndex][colIndex] = element;
+  matrix->mat[rowIndex*nCols+colIndex] = element;
 }
 
 static _Bool isInit = false;
@@ -109,7 +106,7 @@ newDenseMatrix(int nRows, int nCols, int *err)
 
   // Allocate the matrix with rows, check
   DenseMatrixImpl *matrix = malloc(sizeof(DenseMatrixImpl) +
-				   nRows*sizeof(MatrixBaseType *));
+				   nRows*nCols*sizeof(MatrixBaseType *));
   if (!matrix) {
     *err = ENOMEM;
     return NULL;
@@ -117,22 +114,6 @@ newDenseMatrix(int nRows, int nCols, int *err)
 
   matrix->nRows = nRows;
   matrix->nCols = nCols;
-  
-  // Allocate the columns
-  for (int i = 0; i < nRows; i++) {
-    MatrixBaseType *col = calloc(nCols, sizeof(MatrixBaseType));
-    if (!col) {
-      *err = ENOMEM;
-      // Clean up what we've made already
-      for (int j = 0; j < i; j++) {
-	free(matrix->mat[j]);
-      }
-      free(matrix);
-      return NULL;
-    }
-    matrix->mat[i] = col;
-  }
-
   matrix->fns = (MatrixFns *)getDenseMatrixFns();
   
   return (DenseMatrix *)matrix;

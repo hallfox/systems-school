@@ -1,3 +1,4 @@
 * TODO Figure out how to check for "invalid state"
-* TODO Implement Smart Multiplication
+* DONE Implement Smart Multiplication
 * TODO [[file:dense_matrix.c::matrix->fns%20=%20getDenseMatrixFns();][Figure out why this raises a type warning]]
+* TODO Reimplement DenseMatrix so storage for all elements are created with one malloc
