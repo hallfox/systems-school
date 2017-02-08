@@ -12,25 +12,39 @@ typedef struct {
   MatrixBaseType mat[];
 } DenseMatrixImpl;
 
+/** Examines the matrix as a DenseMatrix, and verifies that it is
+    in a valid state, otherwise, set *err to EINVAL. */
+static void verifyDenseMatrix(const Matrix *this, int *err)
+{
+  const DenseMatrixImpl *matrix = (const DenseMatrixImpl *)this;
+  if (matrix->nRows <= 0 || matrix->nCols <= 0) {
+    *err = EINVAL;
+  }
+}
+
 static const char *getKlass(const Matrix *this, int *err)
 {
+  verifyDenseMatrix(this, err);
   return "denseMatrix";
 }
 
 static void freeDenseMatrix(Matrix *this, int *err)
 {
+  verifyDenseMatrix(this, err);
   DenseMatrixImpl *matrix = (DenseMatrixImpl *)this;
   free(matrix);
 }
 
 static int getNRows(const Matrix *this, int *err)
 {
+  verifyDenseMatrix(this, err);
   const DenseMatrixImpl *matrix = (const DenseMatrixImpl *)this;
   return matrix->nRows;
 }
 
 static int getNCols(const Matrix *this, int *err)
 {
+  verifyDenseMatrix(this, err);
   const DenseMatrixImpl *matrix = (const DenseMatrixImpl *)this;
   return matrix->nCols;
 }
